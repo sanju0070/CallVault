@@ -20,10 +20,8 @@
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- In-app updater: query GitHub Releases + download the update APK. -->
+    <!-- Needed ONLY for the loopback (127.0.0.1) connection to the phone's own wireless-debugging ADB; Android requires it for any socket. This build contains no code that contacts an outside server. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- In-app updater: commit a PackageInstaller session for the tap-to-update flow. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />

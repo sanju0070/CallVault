@@ -11,8 +11,6 @@ package com.baba.callvault.system.updates
 import com.baba.callvault.utils.AppLogger
 import org.json.JSONObject
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * Minimal GitHub Releases client for the in-app updater. Unauthenticated (public repo; the
@@ -49,25 +47,11 @@ object GitHubReleases {
      *                    prerelease/draft target. Null in normal use.
      * @return The release info, or null on any failure (network, parse, no APK asset).
      */
-    fun fetchLatestRelease(overrideUrl: String? = null): ReleaseInfo? = runCatching {
-        val connection = (URL(overrideUrl ?: LATEST_RELEASE_URL).openConnection() as HttpURLConnection).apply {
-            connectTimeout = CONNECT_TIMEOUT_MS
-            readTimeout = READ_TIMEOUT_MS
-            setRequestProperty("Accept", "application/vnd.github+json")
-        }
-        try {
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                AppLogger.w(TAG, "Latest-release query failed: HTTP ${connection.responseCode}")
-                return null
-            }
-            connection.inputStream.bufferedReader().use { it.readText() }
-        } finally {
-            connection.disconnect()
-        }
-    }.getOrElse { e ->
-        AppLogger.w(TAG, "Latest-release query failed: ${e.message}")
-        null
-    }?.let { parseLatestRelease(it, allowPrerelease = overrideUrl != null) }
+    fun fetchLatestRelease(overrideUrl: String? = null): ReleaseInfo? {
+        // Network access removed in this build: CallVault never contacts GitHub.
+        AppLogger.d(TAG, "Update check disabled in this build (no network access)")
+        return null
+    }
 
     /**
      * Parses a GitHub release JSON payload. Drafts and prereleases return null unless
@@ -115,84 +99,7 @@ object GitHubReleases {
      * @return true when the file was fully written (and size-checked).
      */
     fun downloadApk(release: ReleaseInfo, destination: File, onProgress: (Int) -> Unit = {}): Boolean {
-        val total = release.apkSizeBytes
-        destination.parentFile?.mkdirs()
-        // A stale partial larger than the target can't be resumed correctly — start clean.
-        if (destination.exists() && destination.length() > total) {
-            runCatching { destination.delete() }
-        }
-
-        repeat(MAX_DOWNLOAD_ATTEMPTS) { attempt ->
-            val alreadyHave = if (destination.exists()) destination.length() else 0L
-            if (alreadyHave == total) {
-                onProgress(100)
-                return true
-            }
-            val ok = runCatching { downloadAttempt(release, destination, alreadyHave, total, onProgress) }
-                .getOrElse { e ->
-                    AppLogger.w(TAG, "Download attempt ${attempt + 1}/$MAX_DOWNLOAD_ATTEMPTS failed: ${e.message}")
-                    false
-                }
-            if (ok && destination.length() == total) return true
-            // Keep the partial file for the next attempt to resume from; back off briefly first.
-            if (attempt < MAX_DOWNLOAD_ATTEMPTS - 1) runCatching { Thread.sleep(RETRY_DELAY_MS) }
-        }
-
-        AppLogger.w(TAG, "APK download gave up after $MAX_DOWNLOAD_ATTEMPTS attempts (have ${destination.length()}/$total)")
+        // Network access removed in this build: no APK is ever downloaded.
         return false
-    }
-
-    /**
-     * One download attempt, resuming from [alreadyHave] bytes. Returns true only if the transfer
-     * reached [total]; throws on network errors (the caller retries). Appends on a 206 resume;
-     * restarts (truncates) if the server returns 200 (ignored the Range) or [alreadyHave] is 0.
-     */
-    private fun downloadAttempt(
-        release: ReleaseInfo,
-        destination: File,
-        alreadyHave: Long,
-        total: Long,
-        onProgress: (Int) -> Unit
-    ): Boolean {
-        val connection = (URL(release.apkUrl).openConnection() as HttpURLConnection).apply {
-            connectTimeout = CONNECT_TIMEOUT_MS
-            readTimeout = READ_TIMEOUT_MS
-            instanceFollowRedirects = true
-            if (alreadyHave > 0L) setRequestProperty("Range", "bytes=$alreadyHave-")
-        }
-        try {
-            val code = connection.responseCode
-            // 206 = server honoured the Range (append); 200 = full body (must restart from 0).
-            val resuming = code == HttpURLConnection.HTTP_PARTIAL
-            if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {
-                AppLogger.w(TAG, "APK download HTTP $code")
-                return false
-            }
-            var written = if (resuming) alreadyHave else 0L
-            var lastPercent = -1
-            if (total > 0L) onProgress(((written * 100) / total).toInt().coerceIn(0, 100))
-            connection.inputStream.use { input ->
-                java.io.FileOutputStream(destination, resuming).use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read < 0) break
-                        output.write(buffer, 0, read)
-                        written += read
-                        if (total > 0L) {
-                            val percent = ((written * 100) / total).toInt().coerceIn(0, 100)
-                            if (percent != lastPercent) {
-                                lastPercent = percent
-                                onProgress(percent)
-                            }
-                        }
-                    }
-                    output.flush()
-                }
-            }
-        } finally {
-            connection.disconnect()
-        }
-        return destination.length() == total
     }
 }

@@ -45,6 +45,13 @@ object SyncScheduler {
      * (re)schedules a DAILY or WEEKLY [SyncSweepWorker] anchored to the configured HH:mm (and day).
      */
     fun apply(context: Context) {
+        // Standby: while the master recording switch is STOPPED, no scheduled work may run.
+        if (com.baba.callvault.data.AppPreferences(context).getRecordingState() ==
+            com.baba.callvault.data.RecordingState.STOPPED
+        ) {
+            androidx.work.WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            return
+        }
         val prefs = AppPreferences(context)
         val target = prefs.getStorageTarget()
         val mode = prefs.getSyncScheduleMode()

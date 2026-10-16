@@ -9,6 +9,7 @@
 package com.baba.callvault.transcription.model
 
 import android.content.Context
+import android.net.Uri
 import com.baba.callvault.utils.AppLogger
 import java.io.File
 import java.security.MessageDigest
@@ -212,6 +213,33 @@ object ModelRepository {
         if (renamed) AppLogger.i(TAG, "Installed model ${model.id}")
         else AppLogger.w(TAG, "Verified ${model.id} but could not move it into place")
         return renamed
+    }
+
+    /**
+     * Installs [model] from a file the user picked (Storage Access Framework), instead of downloading it.
+     * The copy goes through the same size + SHA-256 gate as a download, so a wrong or damaged file is
+     * discarded and never reaches the native loader. Blocking; call off the main thread.
+     *
+     * @return true when the model is now installed.
+     */
+    fun importFromUri(context: Context, model: DownloadableModel, uri: Uri): Boolean {
+        val dir = modelsDir(context)
+        val part = partFileFor(dir, model)
+        return try {
+            val input = context.contentResolver.openInputStream(uri) ?: return false
+            input.use { src -> part.outputStream().use { out -> src.copyTo(out, 64 * 1024) } }
+            if (part.length() != model.sizeBytes) {
+                AppLogger.w(TAG, "Imported file for ${model.id} has the wrong size (${part.length()} != ${model.sizeBytes})")
+                part.delete()
+                false
+            } else {
+                finalizeDownload(dir, model)
+            }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Import of ${model.id} failed: ${e.message}")
+            part.delete()
+            false
+        }
     }
 
     /**

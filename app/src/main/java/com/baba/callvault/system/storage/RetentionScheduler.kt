@@ -43,6 +43,13 @@ object RetentionScheduler {
      * anything, with the UI happily showing it enabled.
      */
     fun apply(context: Context) {
+        // Standby: while the master recording switch is STOPPED, no scheduled work may run.
+        if (com.baba.callvault.data.AppPreferences(context).getRecordingState() ==
+            com.baba.callvault.data.RecordingState.STOPPED
+        ) {
+            androidx.work.WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            return
+        }
         val prefs = AppPreferences(context)
         val maxDays = maxOf(prefs.getRetentionLocalDays(), prefs.getRetentionDriveDays())
         val capBytes = prefs.getStorageCapBytes()

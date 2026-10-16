@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_import_done" translatable="false">Model imported and verified.</string>
+    <string name="model_import_failed" translatable="false">That file is not the right model (wrong size or checksum), or could not be read.</string>
+</resources>

@@ -611,8 +611,8 @@
     -->
     <string name="transcription_model_best">Best quality</string>
     <string name="transcription_model_best_small_download">Best quality, smaller download</string>
-    <string name="transcription_model_download">Download model</string>
-    <string name="transcription_model_download_subtitle">%1$d MB, over Wi-Fi only</string>
+    <string name="transcription_model_download">Import model from file</string>
+    <string name="transcription_model_download_subtitle">%1$d MB file, picked from your storage</string>
     <string name="transcription_model_delete">Delete model</string>
     <string name="transcription_model_installed">Downloaded and ready</string>
     <!--
@@ -637,8 +637,8 @@
       Every size shown to the user is a placeholder filled from SummaryModel, so these numbers move
       when the model does — do not hardcode one into a string.
     -->
-    <string name="summary_model_download">Download the summariser</string>
-    <string name="summary_model_download_subtitle">%1$.1f GB, over Wi-Fi only</string>
+    <string name="summary_model_download">Import the summariser from file</string>
+    <string name="summary_model_download_subtitle">%1$.1f GB file, picked from your storage</string>
     <string name="summary_model_delete">Delete the summariser</string>
     <string name="summary_model_installed">Downloaded and ready</string>
     <string name="summary_model_downloading">Downloading… %1$d%%</string>

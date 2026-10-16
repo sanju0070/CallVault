@@ -30,8 +30,6 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import java.io.File
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * Downloads a model, resumably, and installs it only once it hashes correctly.
@@ -74,7 +72,8 @@ class ModelDownloadWorker(
         // a blocking read when the new one begins, both used to append to the same .part — a duplicated
         // chunk, a file that fails its digest, "the download was damaged" (report 2026-09-28). The new
         // attempt now waits here until the old one has let go of the file.
-        writerFor(model).withLock { downloadAndInstall(dir, model) }
+        // Network access removed in this build: models are imported from a file, never downloaded.
+        Result.failure(workDataOf(KEY_ERROR to "downloads_disabled"))
     }
 
     /** Settles what an earlier attempt left, downloads the rest, verifies, installs. Runs under [writerFor]. */
@@ -166,82 +165,9 @@ class ModelDownloadWorker(
      * coroutine cancellation, and a stopped attempt left reading would keep the file — and [writerFor] —
      * for as long as the socket stays up.
      */
-    private suspend fun download(model: DownloadableModel, part: File, resumeFrom: Long): Outcome = coroutineScope {
-        val connection = (URL(model.url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = CONNECT_TIMEOUT_MS
-            readTimeout = READ_TIMEOUT_MS
-            if (resumeFrom > 0L) setRequestProperty("Range", "bytes=$resumeFrom-")
-        }
-        val dropOnCancel = launch {
-            try { awaitCancellation() } finally { connection.disconnect() }
-        }
-        val startedAt = android.os.SystemClock.elapsedRealtime()
-        var written = resumeFrom
-        var why = "error"
-        try {
-            val status = connection.responseCode
-            AppLogger.i(TAG, ModelDownloadPolicy.attemptStartLine(
-                model.id, runAttemptCount + 1, resumeFrom, model.sizeBytes, status, connection.getHeaderField("Content-Range"),
-            ))
-            val append = when (ModelDownloadPolicy.reply(status, resumeFrom, connection.getHeaderField("Content-Range"))) {
-                ModelDownloadPolicy.Reply.APPEND -> true
-                // A server that ignores the Range header replies 200 with the whole file, so anything
-                // already written has to go or the two would be concatenated into garbage.
-                ModelDownloadPolicy.Reply.START_OVER -> { part.delete(); false }
-                ModelDownloadPolicy.Reply.DISCARD_AND_RETRY -> {
-                    AppLogger.w(TAG, "${model.id}: server resumed from '${connection.getHeaderField("Content-Range")}', not byte $resumeFrom; starting over")
-                    part.delete()
-                    why = "the server resumed from the wrong place; leftover deleted"
-                    return@coroutineScope Outcome.RESTART
-                }
-                ModelDownloadPolicy.Reply.ERROR -> { why = "HTTP $status"; throw IOException("HTTP $status") }
-            }
-
-            written = if (append) resumeFrom else 0L
-            var lastPublished = NOTHING_PUBLISHED
-
-            connection.inputStream.use { input ->
-                java.io.FileOutputStream(part, append).use { output ->
-                    val buffer = ByteArray(BUFFER_BYTES)
-                    while (true) {
-                        if (isStopped) {
-                            why = "stopped by Android (${stopReasonName()})"
-                            return@coroutineScope Outcome.STOPPED
-                        }
-
-                        val read = input.read(buffer)
-                        if (read <= 0) break
-
-                        output.write(buffer, 0, read)
-                        written += read
-
-                        // Only when the whole percent moves. Publishing on every buffer is a
-                        // WorkManager database write per 64 KB — about 8,700 of them for a 574 MB
-                        // model and 52,800 for a 3.46 GB one, to move a bar with a hundred stops.
-                        val percent = ModelDownloadPolicy.percentOf(written, model.sizeBytes)
-                        if (ModelDownloadPolicy.shouldPublish(lastPublished, percent)) {
-                            lastPublished = percent
-                            setProgress(workDataOf(KEY_MODEL_ID to model.id, KEY_PERCENT to percent))
-                        }
-                    }
-                }
-            }
-
-            if (written >= model.sizeBytes) { why = "complete"; Outcome.COMPLETE }
-            else { why = "the server closed the connection early"; Outcome.STOPPED }
-        } catch (e: IOException) {
-            // A stopped attempt usually lands here: its connection is dropped under a blocking read.
-            why = if (isStopped) "stopped by Android (${stopReasonName()})" else "error: ${e.message}"
-            throw e
-        } finally {
-            dropOnCancel.cancel()
-            connection.disconnect()
-            AppLogger.i(TAG, ModelDownloadPolicy.attemptEndLine(
-                model.id, why, (written - resumeFrom).coerceAtLeast(0L), written, model.sizeBytes,
-                android.os.SystemClock.elapsedRealtime() - startedAt,
-            ))
-        }
-    }
+    @Suppress("UNUSED_PARAMETER")
+    private suspend fun download(model: DownloadableModel, part: File, resumeFrom: Long): Outcome =
+        throw UnsupportedOperationException("Downloads are removed in this build")
 
     /** Android's reason for stopping this attempt, readable in a log. The 10-minute limit reads "timeout". */
     private fun stopReasonName(): String = when (stopReason) {

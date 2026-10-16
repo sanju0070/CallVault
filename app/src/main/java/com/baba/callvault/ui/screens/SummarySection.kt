@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +34,7 @@ import com.baba.callvault.summary.SummaryModel
 import com.baba.callvault.transcription.model.ModelDownloadWorker
 import com.baba.callvault.ui.common.ModelDownloadState
 import com.baba.callvault.ui.common.rememberModelDownloadState
+import com.baba.callvault.ui.common.rememberModelImporter
 
 /**
  * The summariser's own section in Settings.
@@ -64,7 +66,9 @@ internal fun SummaryRows(
     // What is on disk is read inside the observer, on every work emission, rather than remembered
     // here — a download that finishes on its own bumps no trigger, and the row was left inviting
     // the user to fetch 3.46 GB they already had.
-    val state by rememberModelDownloadState(model, refreshKey = updateTrigger)
+    var importTick by remember { mutableIntStateOf(0) }
+    val importModel = rememberModelImporter(model) { importTick++ }
+    val state by rememberModelDownloadState(model, refreshKey = updateTrigger + importTick)
 
     val preferences = remember(context) { AppPreferences(context) }
     val askFirst = remember(updateTrigger) { preferences.getSummaryConfirmRequirements() }
@@ -72,9 +76,7 @@ internal fun SummaryRows(
 
     // The costs are stated before the download starts, not after. Skipped once the user has said
     // they do not want asking again — a choice they can undo from the switch below.
-    val startDownload = {
-        if (askFirst) showRequirements = true else onDownload(model)
-    }
+    val startDownload: () -> Unit = importModel
 
     if (showRequirements) {
         SummaryRequirementsDialog(

@@ -21,6 +21,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,6 +32,7 @@ import com.baba.callvault.transcription.model.ModelDownloadWorker
 import com.baba.callvault.transcription.model.TranscriptionModel
 import com.baba.callvault.ui.common.ModelDownloadState
 import com.baba.callvault.ui.common.rememberModelDownloadState
+import com.baba.callvault.ui.common.rememberModelImporter
 
 /**
  * The speech model's rows: what is on the device, and the one action that makes sense next.
@@ -56,7 +60,9 @@ internal fun TranscriptionModelRows(
     onCancel: (TranscriptionModel) -> Unit,
     onDelete: (TranscriptionModel) -> Unit
 ) {
-    val state by rememberModelDownloadState(model, refreshKey = updateTrigger)
+    var importTick by remember { mutableIntStateOf(0) }
+    val importModel = rememberModelImporter(model) { importTick++ }
+    val state by rememberModelDownloadState(model, refreshKey = updateTrigger + importTick)
 
     Column(Modifier.fillMaxWidth()) {
         when (val current = state) {
@@ -77,7 +83,7 @@ internal fun TranscriptionModelRows(
                     R.string.transcription_model_download_subtitle,
                     model.sizeBytes / BYTES_PER_MB
                 ),
-                onClick = { onDownload(model) }
+                onClick = importModel
             )
 
             // Stopped part-way. Saying so is the point: those bytes are banked and the server
@@ -93,7 +99,7 @@ internal fun TranscriptionModelRows(
                     current.downloadedBytes / BYTES_PER_MB,
                     model.sizeBytes / BYTES_PER_MB
                 ),
-                onClick = { onDownload(model) }
+                onClick = importModel
             )
 
             // Queued and 0% look identical on a bar and mean different things, so waiting says so
@@ -122,7 +128,7 @@ internal fun TranscriptionModelRows(
                         else -> R.string.transcription_model_failed
                     }
                 ),
-                onClick = { onDownload(model) }
+                onClick = importModel
             )
         }
     }

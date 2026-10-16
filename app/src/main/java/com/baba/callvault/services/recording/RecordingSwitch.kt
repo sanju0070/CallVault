@@ -44,6 +44,14 @@ object RecordingSwitch {
     }
 
     private fun tearDown(context: Context) {
+        // Standby: also stop the scheduled housekeeping (retention, sync, transcription sweeps), so
+        // nothing runs in the background until recording is switched back on.
+        runCatching {
+            val wm = androidx.work.WorkManager.getInstance(context)
+            wm.cancelUniqueWork(com.baba.callvault.system.storage.RetentionScheduler.WORK_NAME)
+            wm.cancelUniqueWork(com.baba.callvault.system.storage.SyncScheduler.WORK_NAME)
+            wm.cancelUniqueWork(com.baba.callvault.transcription.TranscriptionScheduler.WORK_NAME)
+        }.onFailure { AppLogger.w(TAG, "Could not cancel scheduled work: ${it.message}") }
         // Stop the watchdog FIRST, synchronously, so a binder death from the teardown below cannot be
         // caught and answered with an immediate relaunch (the same ordering the mode switch relies on).
         runCatching { DaemonKeepAliveService.stop(context) }
@@ -64,6 +72,12 @@ object RecordingSwitch {
     }
 
     private fun bringUp(context: Context) {
+        // Standby over: restore the scheduled housekeeping the user has enabled.
+        runCatching {
+            com.baba.callvault.system.storage.RetentionScheduler.apply(context)
+            com.baba.callvault.system.storage.SyncScheduler.apply(context)
+            com.baba.callvault.transcription.TranscriptionScheduler.apply(context)
+        }.onFailure { AppLogger.w(TAG, "Could not restore scheduled work: ${it.message}") }
         // Start the keep-alive anchor (its watchdog keeps the daemon up from here on)...
         DaemonKeepAliveService.start(context)
         // ...but warm the daemon RIGHT NOW rather than leaving it to the watchdog's first relaunch. The

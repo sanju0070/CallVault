@@ -45,54 +45,16 @@ object UpdateScheduler {
     const val INSTALL_WORK_NAME = "cv_update_install"
 
     fun apply(context: Context) {
+        // Update checks are removed in this build: cancel anything an earlier install scheduled.
         val workManager = WorkManager.getInstance(context)
-        if (!AppPreferences(context).isUpdateCheckEnabled()) {
-            workManager.cancelUniqueWork(WORK_NAME)
-            AppLogger.d(TAG, "Update checks disabled; periodic work cancelled")
-            return
-        }
-        val request = PeriodicWorkRequestBuilder<UpdateCheckWorker>(PERIOD_HOURS, TimeUnit.HOURS)
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            )
-            .build()
-        // UPDATE, not KEEP: an install already carrying the old 24 h schedule must pick up the 6 h one,
-        // rather than keep the stale period for the life of the install. Matches the other schedulers.
-        workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
+        workManager.cancelUniqueWork(WORK_NAME)
+        workManager.cancelUniqueWork(CHECK_NOW_WORK_NAME)
+        workManager.cancelUniqueWork(INSTALL_WORK_NAME)
     }
 
-    /**
-     * Runs an immediate one-time check when the app is opened, so a new release surfaces promptly
-     * instead of waiting up to [PERIOD_HOURS] for the daily worker. Throttled by
-     * [CHECK_ON_OPEN_THROTTLE_MS] (via the last-check timestamp) so frequent relaunches don't spam
-     * the GitHub API. No-op when checks are disabled.
-     */
-    fun checkNowIfDue(context: Context) {
-        val preferences = AppPreferences(context)
-        if (!preferences.isUpdateCheckEnabled()) return
-        val elapsed = System.currentTimeMillis() - preferences.getLastUpdateCheckMillis()
-        if (elapsed < CHECK_ON_OPEN_THROTTLE_MS) return
+    /** No-op: this build never checks for updates. */
+    fun checkNowIfDue(context: Context) = Unit
 
-        val request = OneTimeWorkRequestBuilder<UpdateCheckWorker>()
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            )
-            .build()
-        WorkManager.getInstance(context)
-            .enqueueUniqueWork(CHECK_NOW_WORK_NAME, ExistingWorkPolicy.KEEP, request)
-    }
-
-    /**
-     * Enqueues the one-time user-initiated install (Home banner "Update"). Unique + KEEP so repeated
-     * taps don't stack; requires a network connection. Runs in WorkManager so it outlives the UI.
-     */
-    fun enqueueInstallNow(context: Context) {
-        val request = OneTimeWorkRequestBuilder<UpdateInstallWorker>()
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            )
-            .build()
-        WorkManager.getInstance(context)
-            .enqueueUniqueWork(INSTALL_WORK_NAME, ExistingWorkPolicy.KEEP, request)
-    }
+    /** No-op: this build never downloads or installs updates. */
+    fun enqueueInstallNow(context: Context) = Unit
 }
