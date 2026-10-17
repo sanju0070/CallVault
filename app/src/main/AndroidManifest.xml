@@ -12,9 +12,6 @@
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Optional: only meaningful when the user has chosen Shizuku mode. Absent Shizuku, this
-         permission simply never gets granted and nothing in the app asks for it. -->
-    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <!-- Granted via our own ADB shell (pm grant). Lets the app re-enable Wireless debugging
          (adb_wifi_enabled) on boot so recording survives reboots hands-free. -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
@@ -275,16 +272,6 @@
              (RecorderServer) can call("sendBinder", ...) — this mirrors Shizuku's ShizukuProvider,
              which is likewise exported so the privileged server can deliver its binder. The provider
              is a pure binder-delivery channel; no app data is exposed. -->
-        <!-- Shizuku's client-side provider: how the Shizuku API receives its binder in our process.
-             Ours (below) is the mirror image of it for our own daemon. -->
-        <provider
-            android:name="rikka.shizuku.ShizukuProvider"
-            android:authorities="${applicationId}.shizuku"
-            android:multiprocess="false"
-            android:enabled="true"
-            android:exported="true"
-            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
-
         <provider
             android:name=".server.RecorderBinderProvider"
             android:authorities="${recorderAuthority}"

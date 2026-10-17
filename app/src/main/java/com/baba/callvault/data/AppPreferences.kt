@@ -920,11 +920,11 @@ class AppPreferences(context: Context) {
      * Never null and never unknown: an unrecognised stored value answers
      * [PrivilegedMode.STANDALONE], so a downgrade cannot leave the app in a mode it cannot serve.
      */
-    fun getPrivilegedMode(): PrivilegedMode =
-        PrivilegedMode.fromKey(getString(Key.PRIVILEGED_MODE, DefaultsValue.PRIVILEGED_MODE))
+    fun getPrivilegedMode(): PrivilegedMode = PrivilegedMode.STANDALONE // Shizuku is disabled in this build
 
     /** Sets where privileges come from. Changing this tears down one backend and starts the other. */
-    fun setPrivilegedMode(mode: PrivilegedMode) = setString(Key.PRIVILEGED_MODE, mode.key)
+    fun setPrivilegedMode(@Suppress("UNUSED_PARAMETER") mode: PrivilegedMode) =
+        setString(Key.PRIVILEGED_MODE, PrivilegedMode.STANDALONE.key)
 
     /**
      * Turns off every opt-in [mode] cannot honour, and reports what was turned off.

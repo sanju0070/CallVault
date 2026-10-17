@@ -54,7 +54,8 @@ enum class HomeSection(val key: String) {
          */
         fun opening(resolvedScreen: AppScreen, storedKey: String?): HomeSection? {
             if (resolvedScreen != AppScreen.Home) return null
-            return entries.firstOrNull { it.key == storedKey } ?: Hub
+            val stored = entries.firstOrNull { it.key == storedKey } ?: Hub
+            return if (!com.baba.callvault.data.FeatureFlags.TRANSCRIPTION && (stored == Transcripts || stored == Summaries)) Hub else stored
         }
 
         /**

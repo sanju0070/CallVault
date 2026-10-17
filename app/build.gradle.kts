@@ -240,6 +240,8 @@ android {
         // everywhere. Plain `installDebug` is likewise unaffected, so the normal
         // reinstall-over-the-top dev loop still works.
         debug {
+            // Private build: never debuggable (call recordings must not be readable via run-as).
+            isDebuggable = false
             if (isolateTestApp) {
                 applicationIdSuffix = ".instrtest"
                 // Two installs cannot share a ContentProvider authority. Only the isolated build

@@ -318,7 +318,7 @@ fun PermissionsContent(
                 // Offered ONLY to someone who already runs Shizuku. For everyone else this card does
                 // not exist and setup is exactly what it always was — CallVault must never read as an
                 // instruction to install a second app.
-                if (shizukuStatus != ShizukuStatus.NOT_INSTALLED && !shizukuOfferDeclined) {
+                if (com.baba.callvault.data.FeatureFlags.SHIZUKU && shizukuStatus != ShizukuStatus.NOT_INSTALLED && !shizukuOfferDeclined) {
                     item {
                         ShizukuOfferCard(
                             status = shizukuStatus,

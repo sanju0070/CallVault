@@ -306,8 +306,8 @@ internal fun wizardSteps(usesDrive: Boolean, usesEmbeddedAdb: Boolean): List<Wiz
     // Follows the recording's own life: captured, encoded, named, and then read. It is unconditional
     // because transcription needs nothing from ADB — it is the one flagship feature a fresh install
     // would otherwise never hear about, since the What's New dialog only fires after an *update*.
-    add(WizardStep.TRANSCRIPTION)
-    add(WizardStep.UPDATES)
+    if (com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) add(WizardStep.TRANSCRIPTION)
+    if (com.baba.callvault.data.FeatureFlags.UPDATES) add(WizardStep.UPDATES)
 }
 
 /**

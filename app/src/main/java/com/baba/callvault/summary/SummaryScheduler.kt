@@ -47,6 +47,7 @@ object SummaryScheduler {
      * mutex, and two models will not fit in memory together.
      */
     fun runNow(context: Context, displayName: String, model: SummaryModel = SummaryModel.DEFAULT) {
+        if (!com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) return
         val request = OneTimeWorkRequestBuilder<SummaryWorker>()
             .setInputData(
                 workDataOf(

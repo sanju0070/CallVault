@@ -40,6 +40,7 @@ fun TranscriptActionButton(
     /** How far into this recording, 0-100. Zero means not known, and spins instead. */
     percent: Int = 0
 ) {
+    if (!com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) return
     val action = TranscriptRowAction.forStatus(status)
     val description = stringResource(action.contentDescriptionRes)
 

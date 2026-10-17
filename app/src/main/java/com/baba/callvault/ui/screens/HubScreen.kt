@@ -123,6 +123,7 @@ fun HubScreen(
                     onClick = { onOpenSection(HomeSection.Recordings) },
                 )
             }
+            if (com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) {
             item {
                 HubCard(
                     icon = Icons.AutoMirrored.Filled.Article,
@@ -142,6 +143,7 @@ fun HubScreen(
                     body = stringResource(R.string.home_hub_summaries_body),
                     onClick = { onOpenSection(HomeSection.Summaries) },
                 )
+            }
             }
             // Last, and only while the user has not tucked it away: an invitation is worth one cell of a
             // screen they open every day, and worth none at all once they have taken it up. Long-press

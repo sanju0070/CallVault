@@ -51,6 +51,12 @@ object TranscriptionScheduler {
      * (re)schedules a daily run anchored to the configured HH:mm.
      */
     fun apply(context: Context) {
+        if (!com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) {
+            val wm = androidx.work.WorkManager.getInstance(context)
+            wm.cancelUniqueWork(WORK_NAME)
+            wm.cancelUniqueWork(MANUAL_WORK_NAME)
+            return
+        }
         // Standby: while the master recording switch is STOPPED, no scheduled work may run.
         if (com.baba.callvault.data.AppPreferences(context).getRecordingState() ==
             com.baba.callvault.data.RecordingState.STOPPED
@@ -114,6 +120,7 @@ object TranscriptionScheduler {
          */
         userRequested: Boolean = false,
     ) {
+        if (!com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) return
         val request = OneTimeWorkRequestBuilder<TranscriptionWorker>()
             .apply {
                 if (displayName != null) {
@@ -180,6 +187,7 @@ object TranscriptionScheduler {
      * be transcribed at all.
      */
     fun transcribeAfterCallIfEnabled(context: Context, displayName: String) {
+        if (!com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) return
         val prefs = AppPreferences(context)
         val mode = prefs.getTranscriptionMode()
         if (!mode.transcribesOnCallEnd) {

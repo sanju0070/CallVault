@@ -541,7 +541,7 @@ fun SettingsContent(
                 // Privileges made the single most consequential setting the hardest one to find. It is
                 // also the first thing worth checking when something is not working, which is exactly
                 // when nobody wants to go hunting for it.
-                PrivilegedModeSubSection()
+                if (com.baba.callvault.data.FeatureFlags.SHIZUKU) PrivilegedModeSubSection()
                 // The wizard cannot be re-run, so a phone whose OEM blocks the grant needs to be able to
                 // find this out here too. Self-hiding when it does not apply.
                 OemGateNotice(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
@@ -578,6 +578,7 @@ fun SettingsContent(
                     onToggle = { onToggleSection(SECTION_AUDIO) }
                 )
             }
+            if (com.baba.callvault.data.FeatureFlags.TRANSCRIPTION) {
             item {
                 // Summaries live inside this section rather than beside it. A summary is read from
                 // a transcript and is useless without one, and — the reason this moved — they used
@@ -617,6 +618,7 @@ fun SettingsContent(
                         }
                     }
                 )
+            }
             }
             item {
                 GeneralSection(
@@ -1833,7 +1835,7 @@ private fun GeneralSection(
             expanded = openSub == SUB_EXPERIMENTAL,
             onToggle = { openSub = if (openSub == SUB_EXPERIMENTAL) null else SUB_EXPERIMENTAL },
         ) { ExperimentalSubSection() }
-        SettingsSubSection(
+        if (com.baba.callvault.data.FeatureFlags.UPDATES) SettingsSubSection(
             title = stringResource(R.string.settings_section_updates),
             expanded = openSub == SUB_UPDATES,
             onToggle = { openSub = if (openSub == SUB_UPDATES) null else SUB_UPDATES },
